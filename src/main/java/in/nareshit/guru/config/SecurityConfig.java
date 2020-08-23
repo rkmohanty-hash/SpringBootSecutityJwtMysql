@@ -1,0 +1,72 @@
+package in.nareshit.guru.config;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import in.nareshit.guru.filter.SecurityFilter;
+
+@EnableWebSecurity
+@Configuration
+public class SecurityConfig  extends WebSecurityConfigurerAdapter{
+	
+	@Autowired
+	private UserDetailsService service;
+	@Autowired
+	private PasswordEncoder passwordEncoder;
+	@Autowired
+	private AuthenticationEntryPoint authenticationEntryPoint;
+	@Autowired
+	private SecurityFilter securityFilter;
+	
+	
+	//AuthenticationManager check username and password incase of session
+	//here no session checking should be manual
+	@Override
+	@Bean
+	public AuthenticationManager authenticationManagerBean() throws Exception {
+		return super.authenticationManagerBean();
+	}
+
+	             //Authentication
+	@Override
+	protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+		auth
+		.userDetailsService(service)
+		.passwordEncoder(passwordEncoder);
+	}
+                    //Authorization
+	@Override
+	protected void configure(HttpSecurity http) throws Exception {
+		http
+		.csrf()
+		.disable()
+		.authorizeRequests()
+		.antMatchers("/user/save", "/user/login")
+		.permitAll()
+		.anyRequest()
+		.authenticated()
+		.and()
+		.exceptionHandling()
+		.authenticationEntryPoint(authenticationEntryPoint)
+		.and()
+		.sessionManagement()
+		.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+		.and()
+		//Verify user for 2nd request onwards. 1st request genarate token
+		.addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class);
+	}
+
+	
+
+}
